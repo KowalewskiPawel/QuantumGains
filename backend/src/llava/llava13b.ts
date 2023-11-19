@@ -29,6 +29,7 @@ export const getBodyFatAndExercises = async (photoUrl: string, enableErrorCheck 
 
     return bodyFatAndTrainingsOutput;
   } catch (error) {
+    console.error(error);
     throw new Error(JSON.stringify(error));
   }
 };
@@ -46,6 +47,7 @@ export const getSuggestedDiet = async (photoUrl: string) => {
 
     return suggestedDietOutput;
   } catch (error) {
+    console.error(error);
     throw new Error(JSON.stringify(error));
   }
 };
