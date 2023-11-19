@@ -37,7 +37,7 @@ The project is structured as a monorepo with two main directories:
 
 ### Backend
 
-The backend is hosted on Heroku at https://quantum-gains.herokuapp.com/. The API endpoints can be accessed at https://quantum-gains.herokuapp.com/api/.
+The backend is hosted on Heroku at https://quantumgains-production.up.railway.app/. The API endpoints can be accessed at https://quantumgains-production.up.railway.app/api/v1.
 
 ### Mobile
 
