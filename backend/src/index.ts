@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
+import { LlavaRouter } from "./routes";
 
 dotenv.config();
 
@@ -13,7 +14,8 @@ app
   .use(express.json())
   .use(express.urlencoded({ extended: true }))
   .use(cors())
-  .use(helmet());
+  .use(helmet())
+  .use('/api/v1/llava', LlavaRouter);
 
 app.get("/", async (_req, res) => {
   try {

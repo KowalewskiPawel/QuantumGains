@@ -1,0 +1,1 @@
+export const LlavaReplicate13b =  "yorickvp/llava-13b:c293ca6d551ce5e74893ab153c61380f5bcbd80e02d49e08c582de184a8f6c83";
