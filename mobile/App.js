@@ -7,6 +7,7 @@ import {
   Alert,
   SafeAreaView,
   ScrollView,
+  TextInput,
   Image,
   ImageBackground,
 } from "react-native";
@@ -23,6 +24,9 @@ export default function App() {
   const [uploadingStatus, setUploadingStatus] = useState();
   const [photoAnalysisData, setPhotoAnalysisData] = useState();
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLogged, setIsLogged] = useState(false);
 
   const requestPhotoAnalysis = async () => {
     setIsAnalysisLoading(true);
@@ -45,6 +49,11 @@ export default function App() {
       setIsAnalysisLoading(false);
     }
   };
+
+  const loginUser = () => {
+    setIsLogged(true);
+  };
+
 
   const takePhoto = async () => {
     try {
@@ -70,19 +79,51 @@ export default function App() {
     }
   };
 
+  if (!isLogged) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
+          <ScrollView>
+            <View style={styles.container}>
+              <View style={styles.textBackground}>
+                <Text style={styles.title}>QuantumGains</Text>
+              </View>
+              <TextInput
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Username"
+                placeholderTextColor="#cccccc"
+                style={styles.input}
+              />
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Password"
+                placeholderTextColor="#cccccc"
+                secureTextEntry
+                style={styles.input}
+              />
+              <CustomButton title="Login" onPress={loginUser} />
+            </View>
+          </ScrollView>
+        </ImageBackground>
+      </SafeAreaView>
+    )
+  };
+
   if (permission?.status !== ImagePicker.PermissionStatus.GRANTED) {
     return (
       <SafeAreaView style={styles.container}>
         <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
-        <View style={styles.container}>
-          <View style={styles.textBackground}>
-            <Text style={styles.title}>QuantumGains</Text>
-          </View>
-          <View style={styles.textBackground}>
-            <Text style={styles.text}>Permission Not Granted - {permission?.status}</Text>
-          </View>
-          <StatusBar style="auto" />
-          <CustomButton title="Request Permission" onPress={requestPermission} />
+          <View style={styles.container}>
+            <View style={styles.textBackground}>
+              <Text style={styles.title}>QuantumGains</Text>
+            </View>
+            <View style={styles.textBackground}>
+              <Text style={styles.text}>Permission Not Granted - {permission?.status}</Text>
+            </View>
+            <StatusBar style="auto" />
+            <CustomButton title="Request Permission" onPress={requestPermission} />
           </View>
         </ImageBackground>
       </SafeAreaView>
@@ -143,6 +184,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: "#121212", // Dark background
     alignItems: 'center',
+  },
+  input: {
+    width: '80%',
+    height: 50,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 25,
+    color: '#FFFFFF',
+    paddingHorizontal: 20,
+    marginVertical: 10,
+    fontSize: 16,
   },
   textBackground: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent black
