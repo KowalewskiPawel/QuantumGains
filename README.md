@@ -41,7 +41,7 @@ The backend is hosted on Heroku at https://quantumgains-production.up.railway.ap
 
 ### Mobile
 
-The mobile app can be accessed via Expo at TBA.
+The mobile app can be accessed via Expo at https://expo.dev/@practicalearning/quantumgains
 
 ## Authors and Acknowledgements
 
