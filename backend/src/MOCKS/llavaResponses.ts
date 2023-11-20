@@ -150,7 +150,7 @@ export const MOCK_LLAVA_DIET_RESPONSE = {
 };
 
 export const MOCK_LLAVA_PHOTO_RESPONSE = {
-    "fatLevel": 15,
+    "fatLevel": 25,
     "trainingProgramList": [
         {
             "day": "Monday",
