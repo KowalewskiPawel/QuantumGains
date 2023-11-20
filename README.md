@@ -1,5 +1,9 @@
 # QuantumGains
 
+<p align="center">
+    <img src="./quantumGainsDesign.png" alt="QuantumGains" width="300px" />
+</p>
+
 ## Description
 
 QuantumGains is a cutting-edge fitness app designed to revolutionize your training and nutrition. Leveraging advanced AI analysis, QuantumGains provides personalized fitness programs and dietary plans tailored to your unique body composition and wellness goals. Our app uses a sophisticated algorithm to analyze your uploaded photos, calculate body fat percentage, and track progress over time.
