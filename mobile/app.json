@@ -43,6 +43,12 @@
         "projectId": "d427e622-2eb1-41e4-a796-6f7bb0fd0ccc"
       }
     },
-    "owner": "practicalearning"
+    "owner": "practicalearning",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d427e622-2eb1-41e4-a796-6f7bb0fd0ccc"
+    }
   }
 }
