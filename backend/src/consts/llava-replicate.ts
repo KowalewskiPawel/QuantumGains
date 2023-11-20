@@ -1,1 +1,3 @@
 export const LlavaReplicate13b =  "yorickvp/llava-13b:c293ca6d551ce5e74893ab153c61380f5bcbd80e02d49e08c582de184a8f6c83";
+
+export const BakllavaReplicate7b = "lucataco/bakllava:452b2fa0b66d8acdf40e05a7f0af948f9c6065f6da5af22fce4cead99a26ff3d";
