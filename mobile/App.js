@@ -26,9 +26,11 @@ export default function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLogged, setIsLogged] = useState(false);
+  const [isError, setIsError] = useState(false);
 
   const requestPhotoAnalysis = async () => {
     setIsAnalysisLoading(true);
+    setIsError(false);
     try {
       const photoAnalysisResponse = await fetch("https://quantumgains-production.up.railway.app/api/v1/llava/analyze-photo", {
         method: "POST",
@@ -37,11 +39,15 @@ export default function App() {
         },
         body: JSON.stringify({
           photoUrl: uploadedImage,
-          isMockRequest: true
         }),
       });
       const photoAnalysisResponseData = await photoAnalysisResponse.json();
+      if (photoAnalysisResponseData.error || photoAnalysisResponseData.fatLevel === undefined || photoAnalysisResponseData.trainingProgramList === undefined || photoAnalysisResponseData.diet === undefined) {
+        setIsError(true);
+        throw new Error(photoAnalysisResponseData.error);
+      } else {
       setPhotoAnalysisData(photoAnalysisResponseData);
+      }
     } catch (e) {
       Alert.alert("Error Analyzing Photo " + e.message);
     } finally {
@@ -59,7 +65,7 @@ export default function App() {
       const cameraResp = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 1,
+        quality: 0.4,
       });
 
       if (!cameraResp.canceled) {
@@ -161,6 +167,7 @@ export default function App() {
             {!uploadingStatus && <CustomButton title={`${uploadedImage ? "Re-" : ""}Take Picture`} onPress={takePhoto} />}
             {uploadedImage && <CustomButton title="Analyze Photo" onPress={requestPhotoAnalysis} />}
             {isAnalysisLoading && <LoadingSpinner />}
+            {isError && <Text style={styles.text}>Error Analyzing Photo :( Please try again</Text>}
             {photoAnalysisData && <FitnessPlan data={photoAnalysisData} />}
           </View>
         </ScrollView>
