@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   StyleSheet,
@@ -7,15 +8,18 @@ import {
   SafeAreaView,
   ScrollView,
   TextInput,
+  TouchableWithoutFeedback,
+  Keyboard,
   Image,
   ImageBackground,
 } from "react-native";
-import { FitnessPlan, LoadingSpinner, CustomButton } from "./components";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import { FitnessPlan, LoadingSpinner, CustomButton } from "./components";
+import apiClient from "./api/apiClient";
 import { uploadToFirebase } from "./firebase-config";
-import { useState } from "react";
 
-const backgroundImage = require('./assets/background-image-1.png');
+const backgroundImage = require("./assets/background-image-1.png");
 
 export default function App() {
   const [permission, requestPermission] = ImagePicker.useCameraPermissions();
@@ -23,8 +27,9 @@ export default function App() {
   const [uploadingStatus, setUploadingStatus] = useState();
   const [photoAnalysisData, setPhotoAnalysisData] = useState();
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [isLogged, setIsLogged] = useState(false);
   const [isError, setIsError] = useState(false);
 
@@ -32,21 +37,18 @@ export default function App() {
     setIsAnalysisLoading(true);
     setIsError(false);
     try {
-      const photoAnalysisResponse = await fetch("https://quantumgains-production.up.railway.app/api/v1/llava/analyze-photo", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          photoUrl: uploadedImage,
-        }),
-      });
-      const photoAnalysisResponseData = await photoAnalysisResponse.json();
-      if (photoAnalysisResponseData.error || photoAnalysisResponseData.fatLevel === undefined || photoAnalysisResponseData.trainingProgramList === undefined || photoAnalysisResponseData.diet === undefined) {
+      const photoAnalysisResponseData = await apiClient.post('/llava/analyze-photo', { photoUrl: uploadedImage });
+
+      if (
+        photoAnalysisResponseData.error ||
+        photoAnalysisResponseData.fatLevel === undefined ||
+        photoAnalysisResponseData.trainingProgramList === undefined ||
+        photoAnalysisResponseData.diet === undefined
+      ) {
         setIsError(true);
         throw new Error(photoAnalysisResponseData.error);
       } else {
-      setPhotoAnalysisData(photoAnalysisResponseData);
+        setPhotoAnalysisData(photoAnalysisResponseData);
       }
     } catch (e) {
       Alert.alert("Error Analyzing Photo " + e.message);
@@ -55,10 +57,21 @@ export default function App() {
     }
   };
 
-  const loginUser = () => {
-    setIsLogged(true);
-  };
+  const loginUser = async () => {
+    setIsLoginLoading(true);
+    try {
+      const response = await apiClient.post('/users/login', { username, password });
 
+      const { token } = response;
+
+      await AsyncStorage.setItem("userToken", token);
+      setIsLogged(true);
+    } catch (error) {
+      Alert.alert("Login failed");
+    } finally {
+      setIsLoginLoading(false);
+    }
+  };
 
   const takePhoto = async () => {
     try {
@@ -71,8 +84,11 @@ export default function App() {
       if (!cameraResp.canceled) {
         const { uri } = cameraResp.assets[0];
         const fileName = uri.split("/").pop();
-        const uploadResp = await uploadToFirebase(uri, fileName, (currentUploadStatus) =>
-          setUploadingStatus(Math.floor(currentUploadStatus).toString())
+        const uploadResp = await uploadToFirebase(
+          uri,
+          fileName,
+          (currentUploadStatus) =>
+            setUploadingStatus(Math.floor(currentUploadStatus).toString())
         );
         const { downloadUrl } = uploadResp;
 
@@ -87,48 +103,65 @@ export default function App() {
   if (!isLogged) {
     return (
       <SafeAreaView style={styles.container}>
-        <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
-          <ScrollView>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ImageBackground
+            source={backgroundImage}
+            style={styles.backgroundImage}
+          >
             <View style={styles.container}>
               <View style={styles.textBackground}>
                 <Text style={styles.title}>QuantumGains</Text>
               </View>
-              <TextInput
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Username"
-                placeholderTextColor="#cccccc"
-                style={styles.input}
-              />
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Password"
-                placeholderTextColor="#cccccc"
-                secureTextEntry
-                style={styles.input}
-              />
-              <CustomButton title="Login" onPress={loginUser} />
+              {!isLoginLoading ? (
+                <View>
+                  <TextInput
+                    value={username}
+                    onChangeText={setUsername}
+                    placeholder="Username"
+                    placeholderTextColor="#cccccc"
+                    style={styles.input}
+                  />
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Password"
+                    placeholderTextColor="#cccccc"
+                    secureTextEntry
+                    style={styles.input}
+                  />
+                  <CustomButton title="Login" onPress={loginUser} />
+                </View>
+              ) : (
+                <LoadingSpinner />
+              )}
             </View>
-          </ScrollView>
-        </ImageBackground>
+          </ImageBackground>
+        </TouchableWithoutFeedback>
       </SafeAreaView>
-    )
-  };
+    );
+  }
 
   if (permission?.status !== ImagePicker.PermissionStatus.GRANTED) {
     return (
       <SafeAreaView style={styles.container}>
-        <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
+        <ImageBackground
+          source={backgroundImage}
+          style={styles.backgroundImage}
+        >
           <View style={styles.container}>
             <View style={styles.textBackground}>
               <Text style={styles.title}>QuantumGains</Text>
             </View>
             <View style={styles.textBackground}>
-              <Text style={styles.text}>Permission Not Granted - {permission?.status}</Text>
+              <Text style={styles.text}>
+                Permission Not Granted - {permission?.status}
+              </Text>
             </View>
             <StatusBar style="auto" />
-            <CustomButton title="Request Permission" onPress={requestPermission} />
+            <CustomButton
+              title="Request Permission"
+              onPress={requestPermission}
+            />
           </View>
         </ImageBackground>
       </SafeAreaView>
@@ -143,14 +176,17 @@ export default function App() {
             <View style={styles.textBackground}>
               <Text style={styles.title}>QuantumGains</Text>
             </View>
-            {uploadingStatus &&
+            {uploadingStatus && (
               <View>
                 <View style={styles.textBackground}>
-                  <Text style={styles.uploadingStatus}>Uploading in progress: {uploadingStatus} %</Text>
+                  <Text style={styles.uploadingStatus}>
+                    Uploading in progress: {uploadingStatus} %
+                  </Text>
                 </View>
                 <LoadingSpinner />
-              </View>}
-            {uploadedImage &&
+              </View>
+            )}
+            {uploadedImage && (
               <View>
                 <View style={styles.textBackground}>
                   <Text style={styles.uploadingStatus}>Uploaded Image</Text>
@@ -162,12 +198,26 @@ export default function App() {
                   }}
                 />
               </View>
-            }
+            )}
             <StatusBar style="auto" />
-            {!uploadingStatus && <CustomButton title={`${uploadedImage ? "Re-" : ""}Take Picture`} onPress={takePhoto} />}
-            {uploadedImage && <CustomButton title="Analyze Photo" onPress={requestPhotoAnalysis} />}
+            {!uploadingStatus && (
+              <CustomButton
+                title={`${uploadedImage ? "Re-" : ""}Take Picture`}
+                onPress={takePhoto}
+              />
+            )}
+            {uploadedImage && (
+              <CustomButton
+                title="Analyze Photo"
+                onPress={requestPhotoAnalysis}
+              />
+            )}
             {isAnalysisLoading && <LoadingSpinner />}
-            {isError && <Text style={styles.text}>Error Analyzing Photo :( Please try again</Text>}
+            {isError && (
+              <Text style={styles.text}>
+                Error Analyzing Photo :( Please try again
+              </Text>
+            )}
             {photoAnalysisData && <FitnessPlan data={photoAnalysisData} />}
           </View>
         </ScrollView>
@@ -180,47 +230,46 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   backgroundImage: {
     flex: 1,
-    width: '100%',
-    height: '100vh',
-    justifyContent: 'center',
+    width: "100%",
+    height: "auto",
+    justifyContent: "center",
     backgroundColor: "#121212", // Dark background
-    alignItems: 'center',
+    alignItems: "center",
   },
   input: {
-    width: '80%',
+    width: 200,
     height: 50,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: "#1A1A1A",
     borderRadius: 25,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     paddingHorizontal: 20,
     marginVertical: 10,
     fontSize: 16,
   },
   textBackground: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent black
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent black
     paddingVertical: 5, // Adjust the padding as needed
     paddingHorizontal: 10, // Adjust the padding as needed
     borderRadius: 10, // Gives rounded corners
-    alignSelf: 'center', // Centers the background on the text
+    alignSelf: "center", // Centers the background on the text
     marginBottom: 5, // Space below the text
   },
   text: {
-    color: '#FFFFFF', // White text
-    fontWeight: 'bold', // If you want the text to be bold
-    // ... any other text styling you need ...
+    color: "#FFFFFF", // White text
+    fontWeight: "bold",
   },
   title: {
-    color: '#FFFFFF', // White text color for contrast
+    color: "#FFFFFF", // White text color for contrast
     fontSize: 32, // Larger font size for prominence
-    fontWeight: '900', // Extra bold font weight
-    textTransform: 'uppercase', // Uppercase letters for a more impactful look
+    fontWeight: "900", // Extra bold font weight
+    textTransform: "uppercase", // Uppercase letters for a more impactful look
     letterSpacing: 2, // Spacing out the letters for a more refined appearance
-    textShadowColor: 'rgba(0, 0, 0, 0.75)', // Text shadow for depth
+    textShadowColor: "rgba(0, 0, 0, 0.75)", // Text shadow for depth
     textShadowOffset: { width: 2, height: 2 }, // Positioning of the text shadow
     textShadowRadius: 3, // Blurring the shadow for a softer look
     marginBottom: 10, // Space below the title
@@ -229,18 +278,18 @@ const styles = StyleSheet.create({
     width: 300,
     height: 400,
     marginBottom: 20,
-    borderColor: '#FFFFFF', // Border color for the image
+    borderColor: "#FFFFFF", // Border color for the image
     borderWidth: 2,
     borderRadius: 10, // Optional: if you want rounded corners
   },
   uploadingStatus: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
     marginBottom: 10,
   },
   uploadSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
   },
 });
