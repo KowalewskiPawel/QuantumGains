@@ -1,0 +1,1 @@
+export { authJWT } from "./validateJWT";
