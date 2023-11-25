@@ -23,8 +23,8 @@ const backgroundImage = require("./assets/background-image-1.png");
 
 export default function App() {
   const [permission, requestPermission] = ImagePicker.useCameraPermissions();
-  const [uploadedImage, setUploadedImage] = useState();
-  const [uploadingStatus, setUploadingStatus] = useState();
+  const [uploadedImage, setUploadedImage] = useState<string | undefined>();
+  const [uploadingStatus, setUploadingStatus] = useState<string | undefined>();
   const [photoAnalysisData, setPhotoAnalysisData] = useState();
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
@@ -84,15 +84,20 @@ export default function App() {
       if (!cameraResp.canceled) {
         const { uri } = cameraResp.assets[0];
         const fileName = uri.split("/").pop();
+
+        type UploadResponse = {
+          downloadUrl: string;
+        };
+
         const uploadResp = await uploadToFirebase(
           uri,
           fileName,
           (currentUploadStatus) =>
             setUploadingStatus(Math.floor(currentUploadStatus).toString())
         );
-        const { downloadUrl } = uploadResp;
+        const { downloadUrl } = uploadResp as UploadResponse;
 
-        setUploadedImage(downloadUrl);
+        setUploadedImage(downloadUrl as string);
         setUploadingStatus(null);
       }
     } catch (e) {
