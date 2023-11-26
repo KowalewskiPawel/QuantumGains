@@ -1,37 +1,27 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
-  StyleSheet,
-  Text,
   View,
-  Alert,
+  Text,
+  StyleSheet,
   SafeAreaView,
-  ScrollView,
-  TextInput,
-  TouchableWithoutFeedback,
-  Keyboard,
   Image,
   ImageBackground,
+  ScrollView,
+  Alert,
 } from "react-native";
-import { Button, useTheme } from "react-native-paper";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
-import { FitnessPlan, LoadingSpinner, CustomButton } from "./components";
-import apiClient from "./api/apiClient";
-import { uploadToFirebase } from "./firebase-config";
+import { FitnessPlan, LoadingSpinner, CustomButton } from "../components";
+import { backgroundImage } from "../assets";
+import { Button, useTheme } from "react-native-paper";
+import apiClient from "../api/apiClient";
+import { uploadToFirebase } from "../firebase/firebase-config";
 
-const backgroundImage = require("./assets/background-image-1.png");
-
-export const Main = () => {
-  const [permission, requestPermission] = ImagePicker.useCameraPermissions();
+export const PhotoAnalysisScreen = () => {
   const [uploadedImage, setUploadedImage] = useState<string | undefined>();
   const [uploadingStatus, setUploadingStatus] = useState<string | undefined>();
   const [photoAnalysisData, setPhotoAnalysisData] = useState();
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
-  const [isLoginLoading, setIsLoginLoading] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLogged, setIsLogged] = useState(false);
   const [isError, setIsError] = useState(false);
   const theme = useTheme();
 
@@ -59,25 +49,6 @@ export const Main = () => {
       Alert.alert("Error Analyzing Photo " + e.message);
     } finally {
       setIsAnalysisLoading(false);
-    }
-  };
-
-  const loginUser = async () => {
-    setIsLoginLoading(true);
-    try {
-      const response = await apiClient.post("/users/login", {
-        username,
-        password,
-      });
-
-      const { token } = response;
-
-      await AsyncStorage.setItem("userToken", token);
-      setIsLogged(true);
-    } catch (error) {
-      Alert.alert("Login failed");
-    } finally {
-      setIsLoginLoading(false);
     }
   };
 
@@ -113,83 +84,6 @@ export const Main = () => {
     }
   };
 
-  if (!isLogged) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <ImageBackground
-            source={backgroundImage}
-            style={styles.backgroundImage}
-          >
-            <View style={styles.container}>
-              <View style={styles.textBackground}>
-                <Text style={styles.title}>QuantumGains</Text>
-              </View>
-              {!isLoginLoading ? (
-                <View>
-                  <TextInput
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="Username"
-                    placeholderTextColor="#cccccc"
-                    style={styles.input}
-                  />
-                  <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Password"
-                    placeholderTextColor="#cccccc"
-                    secureTextEntry
-                    style={styles.input}
-                  />
-                  <Button
-                    icon="account-key"
-                    mode="contained"
-                    onPress={loginUser}
-                    style={{ marginTop: 10 }}
-                    buttonColor={theme.colors.primary}
-                    textColor={theme.colors.onPrimary}
-                  >
-                    Login
-                  </Button>
-                </View>
-              ) : (
-                <LoadingSpinner />
-              )}
-            </View>
-          </ImageBackground>
-        </TouchableWithoutFeedback>
-      </SafeAreaView>
-    );
-  }
-
-  if (permission?.status !== ImagePicker.PermissionStatus.GRANTED) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ImageBackground
-          source={backgroundImage}
-          style={styles.backgroundImage}
-        >
-          <View style={styles.container}>
-            <View style={styles.textBackground}>
-              <Text style={styles.title}>QuantumGains</Text>
-            </View>
-            <View style={styles.textBackground}>
-              <Text style={styles.text}>
-                Permission Not Granted - {permission?.status}
-              </Text>
-            </View>
-            <StatusBar style="auto" />
-            <CustomButton
-              title="Request Permission"
-              onPress={requestPermission}
-            />
-          </View>
-        </ImageBackground>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
@@ -223,10 +117,16 @@ export const Main = () => {
             )}
             <StatusBar style="auto" />
             {!uploadingStatus && (
-              <CustomButton
-                title={`${uploadedImage ? "Re-" : ""}Take Picture`}
+              <Button
+                icon="camera"
+                mode="contained"
                 onPress={takePhoto}
-              />
+                style={{ marginTop: 10 }}
+                buttonColor={theme.colors.primary}
+                textColor={theme.colors.onPrimary}
+              >
+                {`${uploadedImage ? "Re-" : ""}Take Picture`}
+              </Button>
             )}
             {uploadedImage && (
               <CustomButton
@@ -246,7 +146,7 @@ export const Main = () => {
       </ImageBackground>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
