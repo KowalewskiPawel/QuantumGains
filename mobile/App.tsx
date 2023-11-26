@@ -1,300 +1,64 @@
-import { useState } from "react";
-import { StatusBar } from "expo-status-bar";
+import React from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  TextInput,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Image,
-  ImageBackground,
-} from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as ImagePicker from "expo-image-picker";
-import { FitnessPlan, LoadingSpinner, CustomButton } from "./components";
-import apiClient from "./api/apiClient";
-import { uploadToFirebase } from "./firebase-config";
+  MD3LightTheme as DefaultTheme,
+  PaperProvider,
+} from 'react-native-paper';
+import { Main } from "./Main";
 
-const backgroundImage = require("./assets/background-image-1.png");
+const QuantumGainsDarkScheme = {
+  "colors": {
+    "primary": "rgb(99, 211, 255)",
+    "onPrimary": "rgb(0, 53, 69)",
+    "primaryContainer": "rgb(0, 77, 99)",
+    "onPrimaryContainer": "rgb(188, 233, 255)",
+    "secondary": "rgb(99, 211, 255)",
+    "onSecondary": "rgb(0, 53, 69)",
+    "secondaryContainer": "rgb(0, 77, 99)",
+    "onSecondaryContainer": "rgb(188, 233, 255)",
+    "tertiary": "rgb(99, 211, 255)",
+    "onTertiary": "rgb(0, 53, 69)",
+    "tertiaryContainer": "rgb(0, 77, 99)",
+    "onTertiaryContainer": "rgb(188, 233, 255)",
+    "error": "rgb(255, 180, 171)",
+    "onError": "rgb(105, 0, 5)",
+    "errorContainer": "rgb(147, 0, 10)",
+    "onErrorContainer": "rgb(255, 180, 171)",
+    "background": "rgb(25, 28, 30)",
+    "onBackground": "rgb(225, 226, 228)",
+    "surface": "rgb(25, 28, 30)",
+    "onSurface": "rgb(225, 226, 228)",
+    "surfaceVariant": "rgb(64, 72, 76)",
+    "onSurfaceVariant": "rgb(192, 200, 205)",
+    "outline": "rgb(138, 146, 151)",
+    "outlineVariant": "rgb(64, 72, 76)",
+    "shadow": "rgb(0, 0, 0)",
+    "scrim": "rgb(0, 0, 0)",
+    "inverseSurface": "rgb(225, 226, 228)",
+    "inverseOnSurface": "rgb(46, 49, 50)",
+    "inversePrimary": "rgb(0, 103, 131)",
+    "elevation": {
+      "level0": "transparent",
+      "level1": "rgb(29, 37, 41)",
+      "level2": "rgb(31, 43, 48)",
+      "level3": "rgb(33, 48, 55)",
+      "level4": "rgb(34, 50, 57)",
+      "level5": "rgb(35, 54, 62)"
+    },
+    "surfaceDisabled": "rgba(225, 226, 228, 0.12)",
+    "onSurfaceDisabled": "rgba(225, 226, 228, 0.38)",
+    "backdrop": "rgba(42, 50, 53, 0.4)"
+  }
+};
+
+const theme = {
+  ...DefaultTheme,
+  colors: QuantumGainsDarkScheme.colors,
+};
 
 export default function App() {
-  const [permission, requestPermission] = ImagePicker.useCameraPermissions();
-  const [uploadedImage, setUploadedImage] = useState<string | undefined>();
-  const [uploadingStatus, setUploadingStatus] = useState<string | undefined>();
-  const [photoAnalysisData, setPhotoAnalysisData] = useState();
-  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
-  const [isLoginLoading, setIsLoginLoading] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLogged, setIsLogged] = useState(false);
-  const [isError, setIsError] = useState(false);
-
-  const requestPhotoAnalysis = async () => {
-    setIsAnalysisLoading(true);
-    setIsError(false);
-    try {
-      const photoAnalysisResponseData = await apiClient.post('/llava/analyze-photo', { photoUrl: uploadedImage });
-
-      if (
-        photoAnalysisResponseData.error ||
-        photoAnalysisResponseData.fatLevel === undefined ||
-        photoAnalysisResponseData.trainingProgramList === undefined ||
-        photoAnalysisResponseData.diet === undefined
-      ) {
-        setIsError(true);
-        throw new Error(photoAnalysisResponseData.error);
-      } else {
-        setPhotoAnalysisData(photoAnalysisResponseData);
-      }
-    } catch (e) {
-      Alert.alert("Error Analyzing Photo " + e.message);
-    } finally {
-      setIsAnalysisLoading(false);
-    }
-  };
-
-  const loginUser = async () => {
-    setIsLoginLoading(true);
-    try {
-      const response = await apiClient.post('/users/login', { username, password });
-
-      const { token } = response;
-
-      await AsyncStorage.setItem("userToken", token);
-      setIsLogged(true);
-    } catch (error) {
-      Alert.alert("Login failed");
-    } finally {
-      setIsLoginLoading(false);
-    }
-  };
-
-  const takePhoto = async () => {
-    try {
-      const cameraResp = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.4,
-      });
-
-      if (!cameraResp.canceled) {
-        const { uri } = cameraResp.assets[0];
-        const fileName = uri.split("/").pop();
-
-        type UploadResponse = {
-          downloadUrl: string;
-        };
-
-        const uploadResp = await uploadToFirebase(
-          uri,
-          fileName,
-          (currentUploadStatus) =>
-            setUploadingStatus(Math.floor(currentUploadStatus).toString())
-        );
-        const { downloadUrl } = uploadResp as UploadResponse;
-
-        setUploadedImage(downloadUrl as string);
-        setUploadingStatus(null);
-      }
-    } catch (e) {
-      Alert.alert("Error Uploading Image " + e.message);
-    }
-  };
-
-  if (!isLogged) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <ImageBackground
-            source={backgroundImage}
-            style={styles.backgroundImage}
-          >
-            <View style={styles.container}>
-              <View style={styles.textBackground}>
-                <Text style={styles.title}>QuantumGains</Text>
-              </View>
-              {!isLoginLoading ? (
-                <View>
-                  <TextInput
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="Username"
-                    placeholderTextColor="#cccccc"
-                    style={styles.input}
-                  />
-                  <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Password"
-                    placeholderTextColor="#cccccc"
-                    secureTextEntry
-                    style={styles.input}
-                  />
-                  <CustomButton title="Login" onPress={loginUser} />
-                </View>
-              ) : (
-                <LoadingSpinner />
-              )}
-            </View>
-          </ImageBackground>
-        </TouchableWithoutFeedback>
-      </SafeAreaView>
-    );
-  }
-
-  if (permission?.status !== ImagePicker.PermissionStatus.GRANTED) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ImageBackground
-          source={backgroundImage}
-          style={styles.backgroundImage}
-        >
-          <View style={styles.container}>
-            <View style={styles.textBackground}>
-              <Text style={styles.title}>QuantumGains</Text>
-            </View>
-            <View style={styles.textBackground}>
-              <Text style={styles.text}>
-                Permission Not Granted - {permission?.status}
-              </Text>
-            </View>
-            <StatusBar style="auto" />
-            <CustomButton
-              title="Request Permission"
-              onPress={requestPermission}
-            />
-          </View>
-        </ImageBackground>
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
-      <ImageBackground source={backgroundImage} style={styles.backgroundImage}>
-        <ScrollView>
-          <View style={styles.container}>
-            <View style={styles.textBackground}>
-              <Text style={styles.title}>QuantumGains</Text>
-            </View>
-            {uploadingStatus && (
-              <View>
-                <View style={styles.textBackground}>
-                  <Text style={styles.uploadingStatus}>
-                    Uploading in progress: {uploadingStatus} %
-                  </Text>
-                </View>
-                <LoadingSpinner />
-              </View>
-            )}
-            {uploadedImage && (
-              <View>
-                <View style={styles.textBackground}>
-                  <Text style={styles.uploadingStatus}>Uploaded Image</Text>
-                </View>
-                <Image
-                  style={styles.image}
-                  source={{
-                    uri: uploadedImage,
-                  }}
-                />
-              </View>
-            )}
-            <StatusBar style="auto" />
-            {!uploadingStatus && (
-              <CustomButton
-                title={`${uploadedImage ? "Re-" : ""}Take Picture`}
-                onPress={takePhoto}
-              />
-            )}
-            {uploadedImage && (
-              <CustomButton
-                title="Analyze Photo"
-                onPress={requestPhotoAnalysis}
-              />
-            )}
-            {isAnalysisLoading && <LoadingSpinner />}
-            {isError && (
-              <Text style={styles.text}>
-                Error Analyzing Photo :( Please try again
-              </Text>
-            )}
-            {photoAnalysisData && <FitnessPlan data={photoAnalysisData} />}
-          </View>
-        </ScrollView>
-      </ImageBackground>
-    </SafeAreaView>
+    <PaperProvider theme={theme}>
+      <Main />
+    </PaperProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backgroundImage: {
-    flex: 1,
-    width: "100%",
-    height: "auto",
-    justifyContent: "center",
-    backgroundColor: "#121212", // Dark background
-    alignItems: "center",
-  },
-  input: {
-    width: 200,
-    height: 50,
-    backgroundColor: "#1A1A1A",
-    borderRadius: 25,
-    color: "#FFFFFF",
-    paddingHorizontal: 20,
-    marginVertical: 10,
-    fontSize: 16,
-  },
-  textBackground: {
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent black
-    paddingVertical: 5, // Adjust the padding as needed
-    paddingHorizontal: 10, // Adjust the padding as needed
-    borderRadius: 10, // Gives rounded corners
-    alignSelf: "center", // Centers the background on the text
-    marginBottom: 5, // Space below the text
-  },
-  text: {
-    color: "#FFFFFF", // White text
-    fontWeight: "bold",
-  },
-  title: {
-    color: "#FFFFFF", // White text color for contrast
-    fontSize: 32, // Larger font size for prominence
-    fontWeight: "900", // Extra bold font weight
-    textTransform: "uppercase", // Uppercase letters for a more impactful look
-    letterSpacing: 2, // Spacing out the letters for a more refined appearance
-    textShadowColor: "rgba(0, 0, 0, 0.75)", // Text shadow for depth
-    textShadowOffset: { width: 2, height: 2 }, // Positioning of the text shadow
-    textShadowRadius: 3, // Blurring the shadow for a softer look
-    marginBottom: 10, // Space below the title
-  },
-  image: {
-    width: 300,
-    height: 400,
-    marginBottom: 20,
-    borderColor: "#FFFFFF", // Border color for the image
-    borderWidth: 2,
-    borderRadius: 10, // Optional: if you want rounded corners
-  },
-  uploadingStatus: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  uploadSection: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-});
