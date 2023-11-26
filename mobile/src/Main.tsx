@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
+import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   CameraPermissionScreen,
@@ -14,20 +14,22 @@ const Stack = createNativeStackNavigator();
 export const Main = () => {
   const dispatch = useAppDispatch();
   const { token, loginTime } = useAppSelector(selectAuthState);
-  const navigation = useNavigation();
-  
-    useEffect(() => {
-      if (!token && !loginTime) return;
+  const navigationRef = useNavigationContainerRef();
 
-      const didOneHourPass = Date.now() - loginTime > 3600000;
-      if (didOneHourPass) {
-        dispatch(logoutUser())
-        navigation.navigate("Login" as never);
-      }
-    }, [token, loginTime, navigation]);
-  
+  useEffect(() => {
+    if (!token && !loginTime) return;
+
+    const didOneHourPass = Date.now() - loginTime > 3600000;
+    if (didOneHourPass) {
+      // logout user if one hour has passed since login
+      // and navigate to login screen
+      dispatch(logoutUser());
+      navigationRef.navigate("Login" as never);
+    }
+  }, [token, loginTime]);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator initialRouteName="Login">
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="PhotoAnalysis" component={PhotoAnalysisScreen} />
